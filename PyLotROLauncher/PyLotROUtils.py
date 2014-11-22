@@ -463,6 +463,10 @@ class WorldQueueConfig:
 		self.patchProductCode = ""
 		self.worldQueueURL = ""
 		self.worldQueueParam = ""
+		self.authServerUrl = ""
+		self.supportUrl = ""
+		self.supportServiceUrl = ""
+		self.glsTicketLifetime = ""
 
 		try:
 			webservice, post = WebConnection(urlConfigServer)
@@ -487,9 +491,9 @@ class WorldQueueConfig:
 				nodes = doc.getElementsByTagName("appSettings")[0].childNodes
 				for node in nodes:
 					if node.nodeType == node.ELEMENT_NODE:
-						if node.getAttribute("key") == "GameClient.Filename":
+						if node.getAttribute("key") == "GameClient.WIN32.Filename":
 							self.gameClientFilename = node.getAttribute("value")
-						elif node.getAttribute("key") == "GameClient.ArgTemplate":
+						elif node.getAttribute("key") == "GameClient.WIN32.ArgTemplate":
 							self.gameClientArgTemplate = node.getAttribute("value")
 						elif node.getAttribute("key") == "URL.NewsFeed":
 							self.newsFeedURL = node.getAttribute("value")
@@ -501,6 +505,14 @@ class WorldQueueConfig:
 							self.worldQueueURL = node.getAttribute("value")
 						elif node.getAttribute("key") == "WorldQueue.TakeANumber.Parameters":
 							self.worldQueueParam = node.getAttribute("value")
+						elif node.getAttribute("key") == "GameClient.Arg.authserverurl":
+							self.authServerUrl = node.getAttribute("value")
+						elif node.getAttribute("key") == "GameClient.Arg.supporturl":
+							self.supportUrl = node.getAttribute("value")
+						elif node.getAttribute("key") == "GameClient.Arg.supportserviceurl":
+							self.supportServiceUrl = node.getAttribute("value")
+						elif node.getAttribute("key") == "GameClient.Arg.glsticketlifetime":
+							self.glsTicketLifetime = node.getAttribute("value")
 
 				self.loadSuccess = True
 		except:

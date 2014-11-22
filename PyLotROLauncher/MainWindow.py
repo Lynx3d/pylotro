@@ -364,6 +364,8 @@ class MainWindow:
 			self.worldQueueConfig.gameClientArgTemplate, self.accNumber, self.urlLoginServer,
 			self.account.ticket, self.urlChatServer,
 			self.langConfig.langList[self.uiMain.cboLanguage.currentIndex()].code,
+			self.worldQueueConfig.authServerUrl, self.worldQueueConfig.glsTicketLifetime,
+			self.worldQueueConfig.supportUrl, self.worldQueueConfig.supportServiceUrl,
 			self.settings.gameDir, self.settings.wineProg, self.settings.wineDebug,
 			self.settings.winePrefix, self.settings.hiResEnabled, self.settings.app,
 			self.osType, self.valHomeDir, self.gameType.icoFile, self.rootDir)
