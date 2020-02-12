@@ -477,6 +477,9 @@ class Realm:
 class WorldQueueConfig:
 	def __init__(self, urlConfigServer, usingDND, baseDir, osType, gameDir):
 		self.gameClientFilename = ""
+		self.gameClientFilename32 = ""
+		self.gameClientFilename64 = ""
+		self.gameClientFilenameLegacy = ""
 		self.gameClientArgTemplate = ""
 		self.crashreceiver = ""
 		self.DefaultUploadThrottleMbps = ""
@@ -515,7 +518,11 @@ class WorldQueueConfig:
 				for node in nodes:
 					if node.nodeType == node.ELEMENT_NODE:
 						if node.getAttribute("key") == "GameClient.WIN32.Filename":
-							self.gameClientFilename = node.getAttribute("value")
+							self.gameClientFilename32 = node.getAttribute("value")
+						if node.getAttribute("key") == "GameClient.WIN64.Filename":
+							self.gameClientFilename64 = node.getAttribute("value")
+						if node.getAttribute("key") == "GameClient.WIN32Legacy.Filename":
+							self.gameClientFilenameLegacy = node.getAttribute("value")
 						elif node.getAttribute("key") == "GameClient.WIN32.ArgTemplate":
 							self.gameClientArgTemplate = node.getAttribute("value")
 						elif node.getAttribute("key") == "GameClient.Arg.crashreceiver":
@@ -546,21 +553,6 @@ class WorldQueueConfig:
 							self.worldQueueParam = node.getAttribute("value")
 
 				self.loadSuccess = True
-
-			# check TurbineLauncher.exe.config in gameDir for local game client override
-			tempxml = ""
-			filename = gameDir + '/TurbineLauncher.exe.config'
-			if os.path.exists(filename):
-				infile = uopen(filename, "r", "utf-8")
-				tempxml = infile.read()
-				infile.close()
-				doc = xml.dom.minidom.parseString(tempxml)
-				nodes = doc.getElementsByTagName("appSettings")[0].childNodes
-				for node in nodes:
-					if node.nodeType == node.ELEMENT_NODE:
-						if node.getAttribute("key") == "GameClient.WIN32.Filename":
-							self.gameClientFilename = node.getAttribute("value")
-
 		except:
 			self.loadSuccess = False
 			raise

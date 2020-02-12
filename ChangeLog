@@ -106,3 +106,9 @@ Changes
 
 0.2.6	Updated certificate chain to new SSL certificates after recent update (22.0.1 or possibly 22) update
 		by SSG broke authentication using the old certs.
+
+0.2.7	Added option in Game Settings to select which game client to use.
+		The choices are 32-bit, 32-bit Legacy ("Awesomium"), and 64-bit.  The 32-bit
+		Legacy Awesomium client is recommended for Linux users.  Game client override
+		code that checked TurbineLauncher.exe.config has been removed since it is no
+		longer needed with this option.

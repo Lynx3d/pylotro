@@ -224,11 +224,13 @@ class MainWindow:
 	def actionOptionsSelected(self):
 		winSettings = SettingsWindow(self.winMain, self.settings.hiResEnabled, self.settings.app,
 			self.settings.wineProg, self.settings.wineDebug, self.settings.patchClient,
-			self.settings.winePrefix, self.settings.gameDir, self.valHomeDir, self.osType, self.rootDir)
+			self.settings.winePrefix, self.settings.gameDir, self.valHomeDir, self.osType, self.rootDir,
+                        self.settings.gameClientIdx)
 		
 		self.hideWinMain()
 		if winSettings.Run() == QtGui.QDialog.Accepted:
 			self.settings.hiResEnabled = winSettings.getHiRes()
+			self.settings.gameClientIdx = winSettings.getGameClientIdx()
 			self.settings.app = winSettings.getApp()
 			self.settings.patchClient = winSettings.getPatchClient()
 			self.settings.gameDir = winSettings.getGameDir()
@@ -252,6 +254,7 @@ class MainWindow:
 			self.settings.usingDND = winWizard.getUsingDND()
 			self.settings.usingTest = winWizard.getUsingTest()
 			self.settings.hiResEnabled = winWizard.getHiRes()
+			self.settings.gameClientIdx = winSettings.getGameClientIdx()
 			self.settings.app = winWizard.getApp()
 			self.settings.wineProg = winWizard.getProg()
 			self.settings.wineDebug = winWizard.getDebug()
@@ -387,7 +390,16 @@ class MainWindow:
 			self.AddLog(self.account.messError)
 
 	def LaunchGame(self):
-		game = StartGame(self.winMain, self.worldQueueConfig.gameClientFilename,
+		gameClientIdx = int(self.settings.gameClientIdx)
+
+		if gameClientIdx == 0:
+		        gameClientFilename = self.worldQueueConfig.gameClientFilename32
+		elif gameClientIdx == 1:
+		        gameClientFilename = self.worldQueueConfig.gameClientFilenameLegacy
+		elif gameClientIdx == 2:
+		        gameClientFilename = "x64/" + self.worldQueueConfig.gameClientFilename64
+
+		game = StartGame(self.winMain, gameClientFilename,
 			self.worldQueueConfig.gameClientArgTemplate, self.accNumber, self.urlLoginServer,
 			self.account.ticket, self.urlChatServer,
 			self.langConfig.langList[self.uiMain.cboLanguage.currentIndex()].code,

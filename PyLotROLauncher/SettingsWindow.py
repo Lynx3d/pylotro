@@ -34,7 +34,7 @@ import glob
 
 class SettingsWindow:
 	def __init__(self, parent, hiRes, app, wineProg, wineDebug, patchClient, winePrefix,
-		gameDir, homeDir, osType, rootDir):
+		gameDir, homeDir, osType, rootDir, gameClientIdx):
 
 		self.homeDir = homeDir
 		self.osType = osType
@@ -77,6 +77,9 @@ class SettingsWindow:
 		self.uiSettings.txtGameDir.setText(gameDir)
 		self.uiSettings.cboGraphics.addItem("Enabled")
 		self.uiSettings.cboGraphics.addItem("Disabled")
+		self.uiSettings.cboGameClient.addItem("32-bit")
+		self.uiSettings.cboGameClient.addItem("32-bit Legacy (\"Awesomium\")")
+		self.uiSettings.cboGameClient.addItem("64-bit")
 		self.uiSettings.chkAdvanced.setChecked(False)
 		self.uiSettings.txtPatchClient.setText(patchClient)
 		self.uiSettings.txtPatchClient.setEnabled(False)
@@ -101,6 +104,8 @@ class SettingsWindow:
 			self.uiSettings.cboGraphics.setCurrentIndex(0)
 		else:
 			self.uiSettings.cboGraphics.setCurrentIndex(1)
+
+		self.uiSettings.cboGameClient.setCurrentIndex(int(gameClientIdx))
 
 		QtCore.QObject.connect(self.uiSettings.btnGameDir, QtCore.SIGNAL("clicked()"), self.btnGameDirClicked)
 		QtCore.QObject.connect(self.uiSettings.chkAdvanced, QtCore.SIGNAL("clicked()"), self.chkAdvancedClicked)
@@ -202,6 +207,9 @@ class SettingsWindow:
 			return True
 		else:
 			return False
+
+	def getGameClientIdx(self):
+		return self.uiSettings.cboGameClient.currentIndex()
 
 	def Run(self):
 		return self.winSettings.exec_()
