@@ -112,3 +112,5 @@ Changes
 		Legacy Awesomium client is recommended for Linux users.  Game client override
 		code that checked TurbineLauncher.exe.config has been removed since it is no
 		longer needed with this option.
+
+0.2.8	Updated certificate chain after game update 29.5 invalidated old certs.
