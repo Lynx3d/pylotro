@@ -52,6 +52,7 @@ class Settings:
 		self.focusAccount = True
 		self.winePrefix = os.environ.get('WINEPREFIX')
 		self.gameDir = ""
+		self.gameClientIdx = 0
 		self.hideWinMain = False
 		success = False
 
@@ -95,6 +96,8 @@ class Settings:
 							self.hiResEnabled = True
 						else:
 							self.hiResEnabled = False
+					elif node.nodeName == "Game.Client.Index":
+						self.gameClientIdx = GetText(node.childNodes)
 					elif node.nodeName == "Game.Directory":
 						self.gameDir = GetText(node.childNodes)
 					elif node.nodeName == "Realm":
@@ -189,6 +192,10 @@ class Settings:
 
 		tempNode = doc.createElementNS(EMPTY_NAMESPACE, "Game.Directory")
 		tempNode.appendChild(doc.createTextNode("%s" % (self.gameDir)))
+		gameConfigNode.appendChild(tempNode)
+
+		tempNode = doc.createElementNS(EMPTY_NAMESPACE, "Game.Client.Index")
+		tempNode.appendChild(doc.createTextNode("%s" % (self.gameClientIdx)))
 		gameConfigNode.appendChild(tempNode)
 
 		tempNode = doc.createElementNS(EMPTY_NAMESPACE, "PatchClient")

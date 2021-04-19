@@ -77,3 +77,40 @@ Changes
 		Fix problems when path settings have trailing (back-)slashes.
 		Support for Python 3.x, PyQt 4.6+ and OpenSSL 1.x
 		Enable server authentication for better security (Python 3.2+ only currently)
+
+0.2.1	Fixes for launcher.config XML Changes and version bump to 0.2.1
+		Fix for 20-Nov-2014 slight changes to WorldQueue.config by Turbine which
+		broke pylotro.
+
+0.2.2	Fixes for Update 15.1 changes to launcher.config argument template.  Turbine is now
+		using crashserverurl and DefaultUploadThrottleMbps in the argument template.
+		Version bump to 0.2.2.
+
+0.2.3	Localization changes from hcjiv1 and Arek75. Turbine has removed the client local
+		files for each language. Now each language has a separate subdirectory. If
+		the client local file is not found then I (hcjiv1) pick languages based on those
+		subdirectories.  Thanks to hcjiv1 and Arek75.  Version bump to 0.2.3
+
+0.2.4	News feed fixed - Apparently Turbine changed the content encoding of the news feed to
+		gzip and retrieving the news feed was failing.  We now accept gzip content
+		encoding for the news feed by default and check the Content-Encoding header and
+		uncompress if content is gzip.
+		Also some palette adjustments to the widgets (darker theme)
+
+0.2.5	Added code to check for local game client override in TurbineLauncher.exe.config in game
+		directory.  This is to handle workaround from SSG for game client crashes on
+		Windows XP/Vista platforms that also affects Linux users running the game under
+		wine.  For more information see link below.
+
+		https://www.lotro.com/forums/showthread.php?654273-Windows-XP-and-Vista-Launcher-Issues-Solution
+
+0.2.6	Updated certificate chain to new SSL certificates after recent update (22.0.1 or possibly 22) update
+		by SSG broke authentication using the old certs.
+
+0.2.7	Added option in Game Settings to select which game client to use.
+		The choices are 32-bit, 32-bit Legacy ("Awesomium"), and 64-bit.  The 32-bit
+		Legacy Awesomium client is recommended for Linux users.  Game client override
+		code that checked TurbineLauncher.exe.config has been removed since it is no
+		longer needed with this option.
+
+0.2.8	Updated certificate chain after game update 29.5 invalidated old certs.

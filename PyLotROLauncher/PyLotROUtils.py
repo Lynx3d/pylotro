@@ -31,10 +31,20 @@ import os
 import subprocess
 import sys
 import glob
+import codecs
 from PyQt4 import QtCore
 import xml.dom.minidom
 from xml.sax.saxutils import escape as xml_escape
 import ssl
+
+# Python 3 on windows needs Turbine-supplied config files
+# to be written in UTF-8, but Python 2 doesn't, and won't
+# convert an ascii string for use in codecs.open()
+if sys.version_info >= (3,):
+	from codecs import open as uopen
+else:
+	def uopen(name, mode, dummy):
+		return open(name, mode)
 
 # If Python >3.0 is in use use http otherwise httplib
 # Python >3.0 uses unicode strings by default, so also
@@ -340,7 +350,7 @@ class GLSDataCentre:
 			tempxml = string_decode(webresp.read())
 
 			filename = "%s%sGLSDataCenter.config" % (baseDir, osType.appDir)
-			outfile = open(filename, "w")
+			outfile = uopen(filename, "w", "utf-8")
 			outfile.write(tempxml)
 			outfile.close()
 
@@ -375,15 +385,18 @@ class GLSDataCentre:
 
 class Language:
 	def __init__(self, code):
-		self.code = code.upper()
+		# make code uppercase for easier testing - don't use self.code here unless you want to test against self.code instead of code.
+		code = code.upper()
 		self.news = "en"
 
 		if code == "EN_GB":
 			self.name = "English (UK)"
 			self.code = "ENGLISH"
-		elif code == "ENGLISH":
+			self.news = "en"
+		elif code == "ENGLISH" or code == "EN":
 			self.name = "English"
 			self.code = "ENGLISH"
+			self.news = "en"
 		elif code == "FR":
 			self.name = "French"
 			self.code = "FR"
@@ -406,6 +419,13 @@ class LanguageConfig():
 			# remove "client_local_" (13 chars) and ".dat" (4 chars) from filename
 			temp = os.path.basename(name)[13:-4]
 			self.langList.append(Language(temp))
+		# Handle newer clients where the language is a subdir
+		for name in os.listdir(runDir):
+			path = os.path.join(runDir, name)
+			if os.path.exists(os.path.join(path, "Licenses")):
+				lang = Language(name)
+				self.langList.append(lang)
+				self.langFound = True
 
 class Realm:
 	def __init__(self, name, urlChatServer, urlServerStatus):
@@ -429,7 +449,7 @@ class Realm:
 			tempxml = string_decode(webresp.read())
 
 			filename = "%s%sserver.config" % (baseDir, osType.appDir)
-			outfile = open(filename, "w")
+			outfile = uopen(filename, "w", "utf-8")
 			outfile.write(tempxml)
 			outfile.close()
 
@@ -455,9 +475,19 @@ class Realm:
 			self.realmAvailable = False
 
 class WorldQueueConfig:
-	def __init__(self, urlConfigServer, usingDND, baseDir, osType):
+	def __init__(self, urlConfigServer, usingDND, baseDir, osType, gameDir):
 		self.gameClientFilename = ""
+		self.gameClientFilename32 = ""
+		self.gameClientFilename64 = ""
+		self.gameClientFilenameLegacy = ""
 		self.gameClientArgTemplate = ""
+		self.crashreceiver = ""
+		self.DefaultUploadThrottleMbps = ""
+		self.bugurl = ""
+		self.authserverurl = ""
+		self.supporturl = ""
+		self.supportserviceurl = ""
+		self.glsticketlifetime = ""
 		self.newsFeedURL = ""
 		self.newsStyleSheetURL = ""
 		self.patchProductCode = ""
@@ -475,7 +505,7 @@ class WorldQueueConfig:
 			tempxml = string_decode(webresp.read())
 
 			filename = "%s%slauncher.config" % (baseDir, osType.appDir)
-			outfile = open(filename, "w")
+			outfile = uopen(filename, "w", "utf-8")
 			outfile.write(tempxml)
 			outfile.close()
 
@@ -487,10 +517,30 @@ class WorldQueueConfig:
 				nodes = doc.getElementsByTagName("appSettings")[0].childNodes
 				for node in nodes:
 					if node.nodeType == node.ELEMENT_NODE:
-						if node.getAttribute("key") == "GameClient.Filename":
-							self.gameClientFilename = node.getAttribute("value")
-						elif node.getAttribute("key") == "GameClient.ArgTemplate":
+						if node.getAttribute("key") == "GameClient.WIN32.Filename":
+							self.gameClientFilename32 = node.getAttribute("value")
+						if node.getAttribute("key") == "GameClient.WIN64.Filename":
+							self.gameClientFilename64 = node.getAttribute("value")
+						if node.getAttribute("key") == "GameClient.WIN32Legacy.Filename":
+							self.gameClientFilenameLegacy = node.getAttribute("value")
+						elif node.getAttribute("key") == "GameClient.WIN32.ArgTemplate":
 							self.gameClientArgTemplate = node.getAttribute("value")
+						elif node.getAttribute("key") == "GameClient.Arg.crashreceiver":
+							self.crashreceiver = node.getAttribute("value")
+						elif node.getAttribute("key") == "GameClient.Arg.DefaultUploadThrottleMbps":
+							self.DefaultUploadThrottleMbps = node.getAttribute("value")
+						elif node.getAttribute("key") == "GameClient.Arg.bugurl":
+							self.bugurl = node.getAttribute("value")
+						elif node.getAttribute("key") == "GameClient.Arg.authserverurl":
+							self.authserverurl = node.getAttribute("value")
+						elif node.getAttribute("key") == "GameClient.Arg.supporturl":
+							self.supporturl = node.getAttribute("value")
+						elif node.getAttribute("key") == "GameClient.Arg.supportserviceurl":
+							self.supportserviceurl = node.getAttribute("value")
+						elif node.getAttribute("key") == "GameClient.Arg.glsticketlifetime":
+							self.glsticketlifetime = node.getAttribute("value")
+						elif node.getAttribute("key") == "Launcher.NewsFeedCSSUrl":
+							self.newsFeedCSSURL = node.getAttribute("value")
 						elif node.getAttribute("key") == "URL.NewsFeed":
 							self.newsFeedURL = node.getAttribute("value")
 						elif node.getAttribute("key") == "URL.NewsStyleSheet":
@@ -505,6 +555,7 @@ class WorldQueueConfig:
 				self.loadSuccess = True
 		except:
 			self.loadSuccess = False
+			raise
 
 class Game:
 	def __init__(self, name, description):
@@ -547,7 +598,7 @@ xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">\
 			tempxml = string_decode(webresp.read())
 
 			filename = "%s%sGLSAuthServer.config" % (baseDir, osType.appDir)
-			outfile = open(filename, "w")
+			outfile = uopen(filename, "w", "utf-8")
 			outfile.write(tempxml)
 			outfile.close()
 
@@ -613,7 +664,7 @@ class JoinWorldQueue:
 			tempxml = string_decode(webresp.read())
 
 			filename = "%s%sWorldQueue.config" % (baseDir, osType.appDir)
-			outfile = open(filename, "w")
+			outfile = uopen(filename, "w", "utf-8")
 			outfile.write(tempxml)
 			outfile.close()
 

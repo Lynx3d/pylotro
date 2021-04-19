@@ -30,6 +30,7 @@
 import os
 import sys
 import xml.dom.minidom
+import zlib
 from PyQt4 import QtCore, QtGui, uic
 from .SettingsWindow import SettingsWindow
 from .SettingsWizard import SettingsWizard
@@ -82,6 +83,30 @@ class MainWindow:
 		self.winMain.setWindowFlags(QtCore.Qt.Dialog)
 		self.uiMain = Ui_winMain()
 		self.uiMain.setupUi(self.winMain)
+
+		# Set window palette
+		self.palette = QtGui.QPalette()
+		self.palette.setColor(QtGui.QPalette.Base, QtCore.Qt.black)
+		self.palette.setColor(QtGui.QPalette.AlternateBase, QtGui.QColor(22,21,21))
+		self.palette.setColor(QtGui.QPalette.ToolTipBase, QtGui.QColor(255,255,220))
+		self.palette.setColor(QtGui.QPalette.ToolTipText, QtCore.Qt.black)
+		self.palette.setColor(QtGui.QPalette.Window, QtGui.QColor(44,43,42))
+		self.palette.setColor(QtGui.QPalette.WindowText, QtCore.Qt.white)
+		self.palette.setColor(QtGui.QPalette.Text, QtCore.Qt.white)
+		self.palette.setColor(QtGui.QPalette.BrightText, QtCore.Qt.white)
+		self.palette.setColor(QtGui.QPalette.ButtonText, QtCore.Qt.white)
+		self.palette.setColor(QtGui.QPalette.Button, QtGui.QColor(44,43,42))
+		self.winMain.setPalette(self.palette)
+
+		# find menubar object and save it so we can find the menus
+		for child in self.winMain.children():
+			if isinstance(child, QtGui.QMenuBar):
+				self.menubar = child
+
+		# find menu objects and set the palette on them
+		for child in self.menubar.children():
+			if isinstance(child, QtGui.QMenu):
+				child.setPalette(self.palette)
 
 		self.webMainExists = True
 		try:
@@ -162,6 +187,7 @@ class MainWindow:
 
 	def actionAboutSelected(self):
 		dlgAbout = QtGui.QDialog(self.winMain)
+		dlgAbout.setPalette(self.winMain.palette())
 
 		uifile = None
 
@@ -198,11 +224,13 @@ class MainWindow:
 	def actionOptionsSelected(self):
 		winSettings = SettingsWindow(self.winMain, self.settings.hiResEnabled, self.settings.app,
 			self.settings.wineProg, self.settings.wineDebug, self.settings.patchClient,
-			self.settings.winePrefix, self.settings.gameDir, self.valHomeDir, self.osType, self.rootDir)
+			self.settings.winePrefix, self.settings.gameDir, self.valHomeDir, self.osType, self.rootDir,
+                        self.settings.gameClientIdx)
 		
 		self.hideWinMain()
 		if winSettings.Run() == QtGui.QDialog.Accepted:
 			self.settings.hiResEnabled = winSettings.getHiRes()
+			self.settings.gameClientIdx = winSettings.getGameClientIdx()
 			self.settings.app = winSettings.getApp()
 			self.settings.patchClient = winSettings.getPatchClient()
 			self.settings.gameDir = winSettings.getGameDir()
@@ -226,6 +254,7 @@ class MainWindow:
 			self.settings.usingDND = winWizard.getUsingDND()
 			self.settings.usingTest = winWizard.getUsingTest()
 			self.settings.hiResEnabled = winWizard.getHiRes()
+			self.settings.gameClientIdx = winSettings.getGameClientIdx()
 			self.settings.app = winWizard.getApp()
 			self.settings.wineProg = winWizard.getProg()
 			self.settings.wineDebug = winWizard.getDebug()
@@ -240,6 +269,7 @@ class MainWindow:
 
 	def actionSwitchSelected(self):
 		dlgChooseAccount = QtGui.QDialog(self.winMain)
+		dlgChooseAccount.setPalette(self.winMain.palette())
 
 		uifile = None
 
@@ -360,13 +390,28 @@ class MainWindow:
 			self.AddLog(self.account.messError)
 
 	def LaunchGame(self):
-		game = StartGame(self.winMain, self.worldQueueConfig.gameClientFilename,
+		gameClientIdx = int(self.settings.gameClientIdx)
+
+		if gameClientIdx == 0:
+		        gameClientFilename = self.worldQueueConfig.gameClientFilename32
+		elif gameClientIdx == 1:
+		        gameClientFilename = self.worldQueueConfig.gameClientFilenameLegacy
+		elif gameClientIdx == 2:
+		        gameClientFilename = "x64/" + self.worldQueueConfig.gameClientFilename64
+
+		game = StartGame(self.winMain, gameClientFilename,
 			self.worldQueueConfig.gameClientArgTemplate, self.accNumber, self.urlLoginServer,
 			self.account.ticket, self.urlChatServer,
 			self.langConfig.langList[self.uiMain.cboLanguage.currentIndex()].code,
 			self.settings.gameDir, self.settings.wineProg, self.settings.wineDebug,
 			self.settings.winePrefix, self.settings.hiResEnabled, self.settings.app,
-			self.osType, self.valHomeDir, self.gameType.icoFile, self.rootDir)
+			self.osType, self.valHomeDir, self.gameType.icoFile, self.rootDir,
+			self.worldQueueConfig.crashreceiver, self.worldQueueConfig.DefaultUploadThrottleMbps,
+			self.worldQueueConfig.bugurl, self.worldQueueConfig.authserverurl,
+			self.worldQueueConfig.supporturl, self.worldQueueConfig.supportserviceurl,
+			self.worldQueueConfig.glsticketlifetime,
+			self.uiMain.cboRealm.currentText(),
+			self.uiMain.txtAccount.text())
 
 		self.winMain.hide()
 		game.Run()
@@ -618,7 +663,7 @@ class MainWindowThread(QtCore.QThread):
 			QtCore.QObject.emit(self.winMain, QtCore.SIGNAL("AddLog(QString)"), "[E04] Error accessing GLS data centre.")
 
 	def GetWorldQueueConfig(self, urlWorldQueueServer):
-		self.worldQueueConfig = WorldQueueConfig(urlWorldQueueServer, self.settings.usingDND, self.baseDir, self.osType)
+		self.worldQueueConfig = WorldQueueConfig(urlWorldQueueServer, self.settings.usingDND, self.baseDir, self.osType, self.settings.gameDir)
 
 		if self.worldQueueConfig.loadSuccess:
 			QtCore.QObject.emit(self.winMain, QtCore.SIGNAL("AddLog(QString)"), "World queue configuration read")
@@ -636,11 +681,15 @@ class MainWindowThread(QtCore.QThread):
 			webservice, post = WebConnection(self.worldQueueConfig.newsStyleSheetURL)
 
 			webservice.putrequest("GET", post)
+			webservice.putheader("Accept-Encoding", "gzip")
 			webservice.endheaders()
 
 			webresp = webservice.getresponse()
 
-			tempxml = webresp.read()
+			if webresp.getheader('Content-Encoding', '') == 'gzip':
+				tempxml = zlib.decompress(webresp.read(), 16+zlib.MAX_WBITS)
+			else:
+				tempxml = webresp.read()
 
 			doc = xml.dom.minidom.parseString(tempxml)
 
@@ -659,6 +708,9 @@ class MainWindowThread(QtCore.QThread):
 				if link.nodeType == link.ELEMENT_NODE:
 					href = link.attributes["href"]
 
+			# Ignore broken href (as of 3/30/16) in the style sheet and use Launcher.NewsFeedCSSUrl defined in launcher.config
+			href.value = self.worldQueueConfig.newsFeedCSSURL
+
 			HTMLTEMPLATE = '<html><head><link rel="stylesheet" type="text/css" href="'
 			HTMLTEMPLATE += href.value
 			HTMLTEMPLATE += '"/><base target="_blank"/></head><body><div class="launcherNewsItemsContainer" style="width:auto">'
@@ -669,18 +721,27 @@ class MainWindowThread(QtCore.QThread):
 			webservice, post = WebConnection(urlNewsFeed)
 
 			webservice.putrequest("GET", post)
+			webservice.putheader("Accept-Encoding", "gzip")
 			webservice.endheaders()
 
 			webresp = webservice.getresponse()
 
-			tempxml = webresp.read()
+			if webresp.getheader('Content-Encoding', '') == 'gzip':
+				tempxml = zlib.decompress(webresp.read(), 16+zlib.MAX_WBITS)
+			else:
+				tempxml = webresp.read()
 
 			if len(tempxml) == 0:
 				webservice, post = WebConnection(webresp.getheader("location"))
 				webservice.putrequest("GET", post)
+				webservice.putheader("Accept-Encoding", "gzip")
 				webservice.endheaders()
 				webresp = webservice.getresponse()
-				tempxml = webresp.read()
+
+				if webresp.getheader('Content-Encoding', '') == 'gzip':
+					tempxml = zlib.decompress(webresp.read(), 16+zlib.MAX_WBITS)
+				else:
+					tempxml = webresp.read()
 
 			result = HTMLTEMPLATE
 
